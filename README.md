@@ -1,1 +1,1 @@
-# devops-ci-cd
+# CI/CD Demo Project
