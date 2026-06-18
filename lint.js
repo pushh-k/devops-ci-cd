@@ -1,3 +1,5 @@
+const fs = require("fs");
+
 const content = fs.readFileSync("server.js", "utf8");
 // Read the entire server.js file as text
 
