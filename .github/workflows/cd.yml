@@ -15,6 +15,7 @@ jobs:
   build-and-push:
     name: Build and Push Docker Image
     runs-on: ubuntu-latest
+
     outputs:
       image_tag: ${{ steps.vars.outputs.SHORT_SHA }}
 
@@ -49,9 +50,6 @@ jobs:
           username: ${{ secrets.DOCKERHUB_USERNAME }}
           password: ${{ secrets.DOCKERHUB_TOKEN }}
 
-      - name: Debug Docker Username
-        run: echo "Docker username exists"
-
       - name: Build and push Docker image
         uses: docker/build-push-action@v5
         with:
@@ -60,8 +58,6 @@ jobs:
           tags: |
             pushh-k/devops-cicd-demo:latest
             pushh-k/devops-cicd-demo:${{ steps.vars.outputs.SHORT_SHA }}
-          cache-from: type=gha
-          cache-to: type=gha,mode=max
 
   deploy:
     name: Deploy to EC2
@@ -79,30 +75,21 @@ jobs:
             set -e
 
             IMAGE="pushh-k/devops-cicd-demo:${{ needs.build-and-push.outputs.image_tag }}"
-            CONTAINER="${{ env.CONTAINER_NAME }}"
-            PORT="${{ env.APP_PORT }}"
-
-            echo "Deploying image: $IMAGE"
 
             sudo docker pull "$IMAGE"
 
-            if sudo docker ps -a --format '{{.Names}}' | grep -q "^${CONTAINER}$"; then
-              echo "Stopping old container..."
-              sudo docker stop "$CONTAINER" || true
-              sudo docker rm "$CONTAINER" || true
-            fi
+            sudo docker stop devops-cicd-demo || true
+            sudo docker rm devops-cicd-demo || true
 
-            echo "Starting new container..."
             sudo docker run -d \
-              --name "$CONTAINER" \
+              --name devops-cicd-demo \
               --restart unless-stopped \
-              -p "$PORT:3000" \
+              -p 3000:3000 \
               "$IMAGE"
 
-            echo "Waiting for app..."
             sleep 5
 
-            curl -f "http://localhost:$PORT/health"
+            curl -f http://localhost:3000/health
 
             echo "Deployment successful"
 ```
