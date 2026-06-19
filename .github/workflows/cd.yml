@@ -16,7 +16,6 @@ jobs:
     runs-on: ubuntu-latest
     outputs:
       image_tag: ${{ steps.vars.outputs.SHORT_SHA }}
-      dockerhub_username: ${{ steps.dockerhub.outputs.username }}
 
     steps:
       - name: Checkout code
@@ -85,7 +84,13 @@ jobs:
           script: |
             set -e
 
-            IMAGE="${{ needs.build-and-push.outputs.dockerhub_username }}/${{ env.IMAGE_NAME }}:${{ needs.build-and-push.outputs.image_tag }}"
+            DOCKERHUB_USER="$(echo "${{ secrets.DOCKERHUB_USERNAME }}" | tr -d '[:space:]')"
+            if [ -z "$DOCKERHUB_USER" ]; then
+              echo "DOCKERHUB_USERNAME secret is empty or invalid" >&2
+              exit 1
+            fi
+
+            IMAGE="${DOCKERHUB_USER}/${{ env.IMAGE_NAME }}:${{ needs.build-and-push.outputs.image_tag }}"
             CONTAINER="${{ env.CONTAINER_NAME }}"
             PORT="${{ env.APP_PORT }}"
 
