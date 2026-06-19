@@ -1,3 +1,4 @@
+```yaml
 name: Build and Deploy
 
 on:
@@ -48,14 +49,17 @@ jobs:
           username: ${{ secrets.DOCKERHUB_USERNAME }}
           password: ${{ secrets.DOCKERHUB_TOKEN }}
 
+      - name: Debug Docker Username
+        run: echo "Docker username exists"
+
       - name: Build and push Docker image
         uses: docker/build-push-action@v5
         with:
           context: .
           push: true
           tags: |
-            ${{ secrets.DOCKERHUB_USERNAME }}/${{ env.IMAGE_NAME }}:latest
-            ${{ secrets.DOCKERHUB_USERNAME }}/${{ env.IMAGE_NAME }}:${{ steps.vars.outputs.SHORT_SHA }}
+            pushh-k/devops-cicd-demo:latest
+            pushh-k/devops-cicd-demo:${{ steps.vars.outputs.SHORT_SHA }}
           cache-from: type=gha
           cache-to: type=gha,mode=max
 
@@ -74,7 +78,7 @@ jobs:
           script: |
             set -e
 
-            IMAGE="${{ secrets.DOCKERHUB_USERNAME }}/${{ env.IMAGE_NAME }}:${{ needs.build-and-push.outputs.image_tag }}"
+            IMAGE="pushh-k/devops-cicd-demo:${{ needs.build-and-push.outputs.image_tag }}"
             CONTAINER="${{ env.CONTAINER_NAME }}"
             PORT="${{ env.APP_PORT }}"
 
@@ -93,12 +97,12 @@ jobs:
               --name "$CONTAINER" \
               --restart unless-stopped \
               -p "$PORT:3000" \
-              -e APP_VERSION="${{ needs.build-and-push.outputs.image_tag }}" \
               "$IMAGE"
 
-            echo "Waiting for app to become healthy..."
+            echo "Waiting for app..."
             sleep 5
 
             curl -f "http://localhost:$PORT/health"
 
             echo "Deployment successful"
+```
