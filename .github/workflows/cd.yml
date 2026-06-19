@@ -1,3 +1,4 @@
+```yaml
 name: Build and Deploy
 
 on:
@@ -14,6 +15,7 @@ jobs:
   build-and-push:
     name: Build and Push Docker Image
     runs-on: ubuntu-latest
+
     outputs:
       image_tag: ${{ steps.vars.outputs.SHORT_SHA }}
 
@@ -54,10 +56,8 @@ jobs:
           context: .
           push: true
           tags: |
-            ${{ secrets.DOCKERHUB_USERNAME }}/${{ env.IMAGE_NAME }}:latest
-            ${{ secrets.DOCKERHUB_USERNAME }}/${{ env.IMAGE_NAME }}:${{ steps.vars.outputs.SHORT_SHA }}
-          cache-from: type=gha
-          cache-to: type=gha,mode=max
+            pushkar98k/devops-cicd-demo:latest
+            pushkar98k/devops-cicd-demo:${{ steps.vars.outputs.SHORT_SHA }}
 
   deploy:
     name: Deploy to EC2
@@ -74,31 +74,24 @@ jobs:
           script: |
             set -e
 
-            IMAGE="${{ secrets.DOCKERHUB_USERNAME }}/${{ env.IMAGE_NAME }}:${{ needs.build-and-push.outputs.image_tag }}"
-            CONTAINER="${{ env.CONTAINER_NAME }}"
-            PORT="${{ env.APP_PORT }}"
+            IMAGE="pushkar98k/devops-cicd-demo:${{ needs.build-and-push.outputs.image_tag }}"
 
             echo "Deploying image: $IMAGE"
 
             sudo docker pull "$IMAGE"
 
-            if sudo docker ps -a --format '{{.Names}}' | grep -q "^${CONTAINER}$"; then
-              echo "Stopping old container..."
-              sudo docker stop "$CONTAINER" || true
-              sudo docker rm "$CONTAINER" || true
-            fi
+            sudo docker stop devops-cicd-demo || true
+            sudo docker rm devops-cicd-demo || true
 
-            echo "Starting new container..."
             sudo docker run -d \
-              --name "$CONTAINER" \
+              --name devops-cicd-demo \
               --restart unless-stopped \
-              -p "$PORT:3000" \
-              -e APP_VERSION="${{ needs.build-and-push.outputs.image_tag }}" \
+              -p 3000:3000 \
               "$IMAGE"
 
-            echo "Waiting for app to become healthy..."
             sleep 5
 
-            curl -f "http://localhost:$PORT/health"
+            curl -f http://localhost:3000/health
 
             echo "Deployment successful"
+```
